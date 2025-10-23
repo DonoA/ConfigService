@@ -37,7 +37,10 @@ func (db *ConfigDb) GetConfigs() ([]Config, error) {
 }
 
 func (db *ConfigDb) AddConfig(config *Config) error {
-	db.Configs[GetConfigPathStr(&config.ConfigPath)] = *config
+	strPath := GetConfigPathStr(&config.ConfigPath)
+	db.Configs[strPath] = *config
+	db.Overrides[strPath] = make(ConfigOverrides)
+
 	return nil
 }
 
@@ -71,8 +74,7 @@ func (db *ConfigDb) AddOverride(config *ConfigPath, override *Override) error {
 	configStr := GetConfigPathStr(config)
 	configOverrides, found := db.Overrides[configStr]
 	if !found {
-		configOverrides = make(ConfigOverrides)
-		db.Overrides[configStr] = configOverrides
+		return errors.New("Config not found")
 	}
 
 	overrideStr := GetOverridePathStr(&override.OverrideKey)

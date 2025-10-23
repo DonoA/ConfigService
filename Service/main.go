@@ -86,6 +86,7 @@ func BuildServer(app *Application) http.Handler {
 
 	var finalHandler http.Handler = router
 	finalHandler = loggingMiddleware(finalHandler)
+	finalHandler = crossOriginMiddleware(finalHandler)
 	return finalHandler
 }
 
@@ -115,6 +116,13 @@ func CatchErrors(handler func(*http.Request) (*HttpResponse, error)) func(w http
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func crossOriginMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		next.ServeHTTP(w, r)
 	})
 }

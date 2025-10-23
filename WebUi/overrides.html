@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Config Overrides</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #f4f4f4; }
+    caption { font-size: 1.5em; margin-bottom: 1em; }
+    .input-row { margin-bottom: 1em; }
+    .input-row label { margin-right: 0.5em; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h1>Config Overrides</h1>
+  <a href="/configs.html">All Configs</a>
+  <a href="/overrides.html">Config Overrides</a>
+
+  <div class="input-row">
+    <label for="service">Service:</label>
+    <input type="text" id="service" name="service">
+    <br />
+    <label for="config">Config Name:</label>
+    <input type="text" id="config" name="config">
+    <br />
+    <button id="loadBtn">Load Overrides</button>
+    <span class="error" id="error"></span>
+  </div>
+
+  <table id="overridesTable" style="display:none;">
+    <caption>Overrides</caption>
+    <thead>
+      <tr>
+        <th>Entity Type</th>
+        <th>Entity ID</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+
+  <script>
+    const configServiceHost = 'http://localhost:8080';
+
+    // Helper to get query params
+    function getQueryParam(name) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(name) || '';
+    }
+
+    // On page load, populate fields from query params and auto-load if present
+    window.onload = function() {
+      const service = getQueryParam('service');
+      const config = getQueryParam('config');
+      if (service) document.getElementById('service').value = service;
+      if (config) document.getElementById('config').value = config;
+      if (service && config) {
+        loadOverrides(service, config);
+      }
+    };
+
+    async function loadOverrides(service, config) {
+      const errorElem = document.getElementById('error');
+      errorElem.textContent = '';
+      document.getElementById('overridesTable').style.display = 'none';
+
+      try {
+        const resp = await fetch(`${configServiceHost}/configs/${encodeURIComponent(service)}/${encodeURIComponent(config)}/overrides`);
+        if (!resp.ok) {
+          throw new Error('Failed to load overrides');
+        }
+        const data = await resp.json();
+        const overrides = data.overrides || [];
+        const tbody = document.querySelector('#overridesTable tbody');
+        tbody.innerHTML = '';
+        if (overrides.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="3">No overrides found.</td></tr>';
+        } else {
+          for (const o of overrides) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${o.entityType || ''}</td><td>${o.entityId || ''}</td><td>${o.value || ''}</td>`;
+            tbody.appendChild(tr);
+          }
+        }
+        document.getElementById('overridesTable').style.display = '';
+      } catch (e) {
+        errorElem.textContent = 'Error loading overrides: ' + e.message;
+      }
+    }
+
+    document.getElementById('loadBtn').onclick = function() {
+      const service = document.getElementById('service').value.trim();
+      const config = document.getElementById('config').value.trim();
+      const errorElem = document.getElementById('error');
+      errorElem.textContent = '';
+      document.getElementById('overridesTable').style.display = 'none';
+
+      if (!service || !config) {
+        errorElem.textContent = 'Please enter both service and config name.';
+        return;
+      }
+
+      // Redirect to same page with query params
+      const url = new URL(window.location.href);
+      url.searchParams.set('service', service);
+      url.searchParams.set('config', config);
+      window.location.href = url.toString();
+    };
+  </script>
+</body>
+</html>
